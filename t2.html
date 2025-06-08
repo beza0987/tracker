@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>Student</title>
+   <link rel="stylesheet" href="style.css">
+   <style>
+      @keyframes pulse {
+           0% { transform: scale(1); opacity: 1; }
+           50% { transform: scale(1.2); opacity: 0.7; }
+           100% { transform: scale(1); opacity: 1; }
+       }
+   </style>
+</head>
+<body class="be">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div>
+            <h2><span class="text">Add New Homework or Assignment</span></h2><br><br>
+            <form id="assignmentForm">
+                <div>
+                    <label for="title"><span class="de">Title</span></label>
+                    <input type="text" id="title" name="title">
+                </div>
+                <div>
+                    <label for="subject"><span class="de">Subject</span></label>
+                    <select id="subject" name="subject">
+                        <option value="">Select Subject</option>
+                        <option value="math">Mathematics</option>
+                        <option value="science">ICT</option>
+                        <option value="history">History</option>
+                        <option value="english">English</option>
+                        <option value="art">other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="deadline"><span class="de">Deadline</span></label>
+                    <input type="datetime-local" id="deadline" name="deadline">
+                </div>
+                <div>
+                    <button type="button" id="add-btn" style="
+                        padding: 10px 20px;
+                        background-color: #4CAF50;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        margin-top: 10px;
+                        font-weight: bold;
+                    ">Add Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+               
+    <div class="materials" id="materialsContainer">
+       <!-- Assignment boxes will appear here -->
+    </div>
+ 
+    <!-- Notification Dot -->
+    <div id="notifyDot"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get elements
+        const titleInput = document.getElementById('title');
+        const subjectSelect = document.getElementById('subject');
+        const deadlineInput = document.getElementById('deadline');
+        const addButton = document.getElementById('add-btn');
+        const materialsContainer = document.getElementById('materialsContainer');
+        
+        // Load assignments from localStorage
+        let assignments = JSON.parse(localStorage.getItem('assignments')) || [];
+        
+        // Display existing assignments
+        function displayAssignments() {
+            materialsContainer.innerHTML = '';
+            assignments.forEach((assignment, index) => {
+                createAssignmentBox(assignment, index);
+            });
+        }
+        
+        // Create assignment box
+        function createAssignmentBox(assignment, index) {
+            const box = document.createElement('div');
+            box.className = 'asg';
+            
+            // Format date
+            const formattedDate = assignment.deadline ? 
+                new Date(assignment.deadline).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                }) + 'EC' : 'No deadline';
+            
+            box.innerHTML = `
+                <img src="./2113886.png" alt="assignment">
+                <h3>${assignment.title || 'Untitled Assignment'}</h3>
+                <p class="dline">${formattedDate}</p>
+                <p>${assignment.subject || 'No subject'}</p>
+                <p>Home work</p>
+                <div class="status-controls">
+                    <input type="checkbox" id="started-${index}" name="started" ${assignment.started ? 'checked' : ''}>
+                    <label for="started-${index}">STARTED</label><br>
+                    <input type="checkbox" id="done-${index}" name="done" ${assignment.done ? 'checked' : ''}>
+                    <label for="done-${index}">DONE</label>
+                </div>
+                <button class="delete-btn" data-index="${index}">Delete</button>
+            `;
+            
+            materialsContainer.appendChild(box);
+            
+            // Add event listeners
+            box.querySelector(`#started-${index}`).addEventListener('change', function() {
+                assignments[index].started = this.checked;
+                saveAssignments();
+            });
+            
+            box.querySelector(`#done-${index}`).addEventListener('change', function() {
+                assignments[index].done = this.checked;
+                saveAssignments();
+            });
+            
+            box.querySelector('.delete-btn').addEventListener('click', function() {
+                if (confirm('Delete this assignment?')) {
+                    assignments.splice(index, 1);
+                    saveAssignments();
+                    displayAssignments();
+                }
+            });
+        }
+        
+        // Save assignments
+        function saveAssignments() {
+            localStorage.setItem('assignments', JSON.stringify(assignments));
+        }
+        
+        // Add new assignment
+        function addNewAssignment() {
+            const title = titleInput.value.trim();
+            const subject = subjectSelect.value;
+            const deadline = deadlineInput.value;
+            
+            if (!title) {
+                alert('Please enter a title');
+                return;
+            }
+            
+            assignments.push({
+                title,
+                subject,
+                deadline,
+                started: false,
+                done: false,
+                createdAt: new Date().toISOString()
+            });
+            
+            saveAssignments();
+            createAssignmentBox(assignments[assignments.length - 1], assignments.length - 1);
+            
+            // Clear form
+            titleInput.value = '';
+            deadlineInput.value = '';
+        }
+        
+        // Notification system
+        function checkForTeacherAssignment() {
+            if (localStorage.getItem('NEW_ASSIGNMENT_ALERT') === 'TRUE') {
+                document.getElementById('notifyDot').style.display = 'block';
+            }
+        }
+        
+        document.getElementById('notifyDot').addEventListener('click', function() {
+            const data = JSON.parse(localStorage.getItem('ASSIGNMENT_DATA'));
+            if (data) {
+                alert(`New Assignment from Teacher!\nDeadline: ${new Date(data.deadline).toLocaleString()}\nFile: ${data.fileName}`);
+                localStorage.removeItem('NEW_ASSIGNMENT_ALERT');
+                this.style.display = 'none';
+            }
+        });
+        
+        // Set up event listeners
+        addButton.addEventListener('click', addNewAssignment);
+        titleInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewAssignment();
+            }
+        });
+        
+        // Initial setup
+        displayAssignments();
+        checkForTeacherAssignment();
+        setInterval(checkForTeacherAssignment, 1000);
+    });
+    </script>
+</body>
+</html>
